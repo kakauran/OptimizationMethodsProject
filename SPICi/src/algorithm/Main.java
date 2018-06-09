@@ -1,18 +1,10 @@
 package algorithm;
-import gurobi.*;
 import java.util.*;
 
 
 public class Main {
 	public static void main(String[] args) {
-		
-		try {
-			GRBEnv env = new GRBEnv("spici.log");
-			GRBModel model = new GRBModel(env);
-			
-			model.set(GRB.StringAttr.ModelName, "SPICi");
 	
-			
 			int edges[][] = {{1,11},{11,10},{11,9},{9,6},{9,7},{9,12},{9,3},{9,8},{6,3},{8,12},{8,5},{3,4},{3,2},{4,2},  {9,10}};
 			double weights[] = {1,     1,      1,   0.2,  0.7,   0.5,   0.9,  1,   0.4,   1,    0.6,   1,   0.6,  0.4,    0.7};
 			int nVertices = 12;
@@ -40,8 +32,11 @@ public class Main {
 				System.out.println("Seed-One   " + seed1);
 				adjacents = Calculators.adjacents(degreeQ, seed1, edges);
 				//seed2 = max value from seed1's adjacent vertices
-
-				int seed2 = Calculators.max(adjacents);
+				
+				HashMap<Integer, Double> binned = new HashMap<Integer, Double>();
+				binned = Binning.binThese(adjacents, edges, weights, seed1);
+				
+				int seed2 = Calculators.max(binned);
 				System.out.println("Seed-Two   " + seed2);
 				if(seed2==-1) {
 					//if no adjacent vertices S=seed1
@@ -69,7 +64,8 @@ public class Main {
 						temp.putAll(clusterS);
 						temp.put(maxSup,canidateQ.get(maxSup));
 						
-						if((canidateQ.get(maxSup)>=(sThreshold*clusterS.size()*Calculators.density(clusterS,weights,edges))&&Calculators.density(temp,weights,edges)>dThreshold)) {
+						if((canidateQ.get(maxSup)>=(sThreshold*clusterS.size()*Calculators.density(clusterS,weights,edges))
+								&&Calculators.density(temp,weights,edges)>dThreshold)) {
 							clusterS.put(maxSup,canidateQ.get(maxSup));
 						}
 						temp.clear();
@@ -82,10 +78,6 @@ public class Main {
 				for(int key: clusterS.keySet()) {
 					degreeQ.remove(key);
 				}
-			}
-			
-		} catch (GRBException e) {
-			System.out.println("Error code: " + e.getErrorCode() + ". " + e.getMessage());
 			}
 		}
 	}

@@ -16,7 +16,6 @@ public class Calculators {
 			}
 		}
 		double density = weight / (cluster.size()*(cluster.size()-1)/2);
-		System.out.println("Density    " + weight);
 		return density;
 	}
 	public static double support(int vertex, HashMap <Integer, Double> cluster,double[] weights, int[][] edges) {
