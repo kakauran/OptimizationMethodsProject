@@ -1,57 +1,82 @@
 package algorithm;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 
 
 public class Main {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws UnsupportedEncodingException, FileNotFoundException, IOException {
+		List<Integer[]> edges = new ArrayList<Integer[]>();
+		List<Double> weights = new ArrayList<Double>();
+		PrintWriter writer = new PrintWriter("output.txt", "UTF-8");
+		
+		try {
+			edges = Graph.readEdgesFromFile("resources/biogrid.9606");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	
-			int edges[][] = {{1,11},{11,10},{11,9},{9,6},{9,7},{9,12},{9,3},{9,8},{6,3},{8,12},{8,5},{3,4},{3,2},{4,2},  {9,10}};
-			double weights[] = {1,     1,      1,   0.2,  0.7,   0.5,   0.9,  1,   0.4,   1,    0.6,   1,   0.6,  0.4,    0.7};
-			int nVertices = 12;
-			int nEdges = edges.length;
+			try {
+				weights = Graph.readWeightFromFile("resources/biogrid.9606");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
+			Integer highest = Math.max(edges.stream().max((a, b) -> a[0] > b[0] ? 1 : -1 ).get()[0],edges.stream().max((a, b) -> a[1] > b[1] ? 1 : -1 ).get()[1]);
+			
+			int nVertices = highest;
+			int nEdges = edges.size();
+			
+			
+			//Choose initial capacity high enough to minimize frequency of rehashing
 			HashMap<Integer, Double> degreeQ   = new HashMap<Integer, Double>();
-			HashMap<Integer, Double> adjacents = new HashMap<Integer, Double>();
-			HashMap<Integer, Double> canidateQ = new HashMap<Integer, Double>();
-			HashMap<Integer, Double> clusterS  = new HashMap<Integer, Double>();
-			HashMap<Integer, Double> tried     = new HashMap<Integer, Double>();
+			
 			double sThreshold = 0.5;
 			double dThreshold = 0.5;
 			
 			//initialize degreeQ to be V
-			for(int i=0; i<nVertices; i++) {
-				degreeQ.put(i, Calculators.degree(i, weights, edges));
+			for(int i=0; i<nEdges; i++) {
+				Integer[] edge = edges.get(i);
+				degreeQ.put(edge[0], Calculators.degree(edge[0], weights, edges, nEdges));
+				degreeQ.put(edge[1], Calculators.degree(edge[1], weights, edges, nEdges));
 			}
 			
+
 			while(!degreeQ.isEmpty()) {
 				//clear set S
-				tried.clear();
-				clusterS.clear();
-				adjacents.clear();
+				HashMap<Integer, Double> tried = new HashMap<Integer, Double>();
+				HashMap<Integer, Double> adjacents = new HashMap<Integer, Double>();
+				HashMap<Integer, Double> canidateQ = new HashMap<Integer, Double>();
+				HashMap<Integer, Double> clusterS  = new HashMap<Integer, Double>();
+				
 				//seed1 = max value from degreeQ
 				int seed1 = Calculators.max(degreeQ);
 				System.out.println("Seed-One   " + seed1);
-				adjacents = Calculators.adjacents(degreeQ, seed1, edges);
+				adjacents = Calculators.adjacents(degreeQ, seed1, edges, nEdges);
 				//seed2 = max value from seed1's adjacent vertices
 				
-				HashMap<Integer, Double> binned = new HashMap<Integer, Double>();
-				binned = Binning.binThese(adjacents, edges, weights, seed1);
-				
-				int seed2 = Calculators.max(binned);
+				int seed2 = Calculators.max(Binning.binThese(adjacents, weights, edges, seed1, nEdges));
 				System.out.println("Seed-Two   " + seed2);
 				if(seed2==-1) {
 					//if no adjacent vertices S=seed1
 					clusterS.put(seed1, degreeQ.get(seed1));
+					writer.write(clusterS.keySet().toString() + "\n");
 					System.out.println("Cluster     " + clusterS.keySet() );
 				}else {
 					clusterS.put(seed1, degreeQ.get(seed1));
 					clusterS.put(seed2, degreeQ.get(seed2));
 					do {
 						for(int j: clusterS.keySet()) {
-							for(int i=0; i < edges.length; i++) {
-								if((edges[i][0]-1 == j)&&!tried.containsKey(edges[i][1]-1)&&!clusterS.containsKey(edges[i][1]-1)&&degreeQ.containsKey(edges[i][1]-1)) {
-									canidateQ.put(edges[i][1]-1,Calculators.support(edges[i][1]-1, clusterS,weights,edges));
-								}if((edges[i][1]-1 == j)&&!tried.containsKey(edges[i][0]-1)&&!clusterS.containsKey(edges[i][0]-1)&&degreeQ.containsKey(edges[i][0]-1)) {
-									canidateQ.put(edges[i][0]-1,Calculators.support(edges[i][0]-1, clusterS,weights,edges));
+							for(int i=0; i < nEdges; i++) {
+								Integer[] edge = edges.get(i);
+								if((edge[0] == j)&&!tried.containsKey(edge[1])&&!clusterS.containsKey(edge[1])&&degreeQ.containsKey(edge[1])) {
+									canidateQ.put(edge[1],Calculators.support(edge[1], clusterS,weights,edges,nEdges));
+								}if((edge[1] == j)&&!tried.containsKey(edge[0])&&!clusterS.containsKey(edge[0])&&degreeQ.containsKey(edge[0])) {
+									canidateQ.put(edge[0],Calculators.support(edge[0], clusterS,weights,edges, nEdges));
 								}
 							}
 						}
@@ -64,8 +89,8 @@ public class Main {
 						temp.putAll(clusterS);
 						temp.put(maxSup,canidateQ.get(maxSup));
 						
-						if((canidateQ.get(maxSup)>=(sThreshold*clusterS.size()*Calculators.density(clusterS,weights,edges))
-								&&Calculators.density(temp,weights,edges)>dThreshold)) {
+						if((canidateQ.get(maxSup)>=(sThreshold*clusterS.size()*Calculators.density(clusterS,weights,edges,nEdges))
+								&&Calculators.density(temp,weights,edges,nEdges)>dThreshold)) {
 							clusterS.put(maxSup,canidateQ.get(maxSup));
 						}
 						temp.clear();
@@ -73,12 +98,16 @@ public class Main {
 						tried.put(maxSup, 0.0);
 						}
 					}while(!canidateQ.isEmpty());
-					System.out.println("Cluster     " + clusterS.keySet() );
+					
+						writer.write(clusterS.keySet().toString() + "\n");
+						System.out.println("Cluster     " + clusterS.keySet() );
 				}
+				
 				for(int key: clusterS.keySet()) {
 					degreeQ.remove(key);
 				}
 			}
+			writer.close();
 		}
 	}
 

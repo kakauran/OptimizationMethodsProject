@@ -1,9 +1,10 @@
 package algorithm;
 
 import java.util.HashMap;
+import java.util.List;
 
 public class Binning {
-	public static HashMap<Integer, Double> binThese(HashMap<Integer, Double> adjacents, int[][] edges, double[] weights, int seed){
+	public static HashMap<Integer, Double> binThese(HashMap<Integer, Double> adjacents, List<Double> weights, List<Integer[]> edges, int seed, int nEdges){
 		
 		HashMap<Integer, Double> bin1 = new HashMap<Integer, Double>(); //0.8<n<=1
 		HashMap<Integer, Double> bin2 = new HashMap<Integer, Double>(); //0.6<n<=0.8
@@ -12,17 +13,18 @@ public class Binning {
 		HashMap<Integer, Double> bin5 = new HashMap<Integer, Double>(); //0<n<=0.2		
 		
 		for(int key: adjacents.keySet()) {
-			for(int i=0; i<edges.length; i++) {
-				if((edges[i][0]-1 == seed||edges[i][1]-1 == seed)&&(edges[i][0]-1 == key||edges[i][1]-1 == key)) {
-					if(0.8<weights[i] && weights[i] <=1) {
+			for(int i=0; i<nEdges; i++) {
+				Integer[] edge = edges.get(i);
+				if((edge[0] == seed||edge[1] == seed)&&(edge[0] == key||edge[1] == key)) {
+					if(0.8<weights.get(i) && weights.get(i)  <=1) {
 						bin1.put(key, adjacents.get(key));
-					}else if(0.6<weights[i] && weights[i] <=0.8) {
+					}else if(0.6<weights.get(i)  && weights.get(i)  <=0.8) {
 						bin2.put(key, adjacents.get(key));
-					}else if(0.4<weights[i] && weights[i] <=0.6) {
+					}else if(0.4<weights.get(i)  && weights.get(i)  <=0.6) {
 						bin3.put(key, adjacents.get(key));
-					}else if(0.2<weights[i] && weights[i] <=0.4) {
+					}else if(0.2<weights.get(i)  && weights.get(i)  <=0.4) {
 						bin4.put(key, adjacents.get(key));
-					}else if(0<weights[i] && weights[i] <=0.2) {
+					}else if(0<weights.get(i)  && weights.get(i)  <=0.2) {
 						bin5.put(key, adjacents.get(key));
 					}
 				}
